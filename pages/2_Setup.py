@@ -48,10 +48,11 @@ if st.button("Save Full Setup"):
     st.session_state.locations = locations
     st.session_state.setup_done = True
     
-    # Save to Supabase
-    supabase.table("user_settings").upsert({
+    # Delete old settings then insert new
+    supabase.table("user_settings").delete().eq("user_name", st.session_state.user_name).execute()
+    supabase.table("user_settings").insert({
         "user_name": st.session_state.user_name,
         "locations": json.dumps(locations)
-    }, on_conflict="user_name").execute()
+    }).execute()
     
     st.switch_page("pages/3_Scan.py")
