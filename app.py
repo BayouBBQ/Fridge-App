@@ -30,12 +30,12 @@ if not st.session_state.setup_done:
     make = st.text_input("Make", "LG")
     model = st.text_input("Model", "GR-B708XL")
     
-    if st.button("Generate Layout"):
+    if st.button("Generate Fridge & Freezer Layout"):
         make_clean = make.strip().lower()
         model_clean = model.strip().lower().replace(" ", "").replace("-", "")
         
         if "lg" in make_clean and "grb708xl" in model_clean:
-            st.session_state.locations = [
+            fridge_freezer = [
                 "Fridge Top Shelf",
                 "Fridge Middle Shelf",
                 "Fridge Bottom Shelf",
@@ -52,25 +52,29 @@ if not st.session_state.setup_done:
                 "Freezer Right Top",
                 "Freezer Right Bottom",
                 "Freezer Door Left",
-                "Freezer Door Right",
-                "Pantry Top",
-                "Pantry Bottom"
+                "Freezer Door Right"
             ]
-            st.success("Exact layout for LG GR-B708XL loaded!")
+            st.session_state.fridge_freezer = fridge_freezer
+            st.success("Fridge & Freezer layout for LG GR-B708XL loaded!")
         else:
-            st.session_state.locations = [
+            st.session_state.fridge_freezer = [
                 "Fridge Top Shelf",
                 "Fridge Middle Shelf",
                 "Fridge Bottom Shelf",
                 "Fridge Door",
-                "Freezer",
-                "Pantry"
+                "Freezer"
             ]
-            st.info("Generic layout loaded.")
-    
-    layout_text = st.text_area("Edit Layout (one per line)", "\n".join(st.session_state.locations) if st.session_state.locations else "")
-    if st.button("Save Setup"):
-        st.session_state.locations = [l.strip() for l in layout_text.split("\n") if l.strip()]
+            st.info("Generic fridge/freezer layout loaded.")
+
+    # Customizable Pantry
+    st.subheader("Pantry Locations (customize as needed)")
+    pantry_default = "Pantry Shelf 1\nPantry Shelf 2\nPantry Shelf 3\nPantry Floor"
+    pantry_text = st.text_area("Pantry shelves / locations (one per line)", pantry_default, height=150)
+
+    if st.button("Save Full Setup"):
+        fridge_freezer = st.session_state.get("fridge_freezer", [])
+        pantry = [line.strip() for line in pantry_text.split("\n") if line.strip()]
+        st.session_state.locations = fridge_freezer + pantry
         st.session_state.setup_done = True
         st.success("Setup saved!")
         st.rerun()
