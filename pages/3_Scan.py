@@ -64,8 +64,5 @@ if 'analysis_results' in st.session_state and st.button("Save All Items"):
     if 'analysis_results' in st.session_state:
         del st.session_state['analysis_results']
     st.switch_page("pages/4_Inventory.py")
-        st.session_state['analysis_results'] = all_results
 
-if 'analysis_results' in st.session_state and st.button("Save All Items"):
-    total_saved = 0
-    for loc, text in st.session_state['analysis_results']:
+
