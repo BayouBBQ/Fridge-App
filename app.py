@@ -1,22 +1,12 @@
 import streamlit as st
 from openai import OpenAI
+from supabase import create_client
 import base64
-import sqlite3
 from datetime import datetime
 import re
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-conn = sqlite3.connect('inventory.db', check_same_thread=False)
-cursor = conn.cursor()
-cursor.execute('''CREATE TABLE IF NOT EXISTS inventory (
-    id INTEGER PRIMARY KEY,
-    name TEXT,
-    quantity TEXT,
-    location TEXT,
-    added TEXT
-)''')
-conn.commit()
+supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.title("Fridge Scanner")
 
@@ -66,7 +56,6 @@ if not st.session_state.setup_done:
             ]
             st.info("Generic fridge/freezer layout loaded.")
 
-    # Customizable Pantry
     st.subheader("Pantry Locations (customize as needed)")
     pantry_default = "Pantry Shelf 1\nPantry Shelf 2\nPantry Shelf 3\nPantry Floor"
     pantry_text = st.text_area("Pantry shelves / locations (one per line)", pantry_default, height=150)
@@ -80,7 +69,6 @@ if not st.session_state.setup_done:
         st.rerun()
 
 else:
-    # Main app after setup
     language = st.radio("Language", ["English", "עברית"], horizontal=True)
     prompt = "List all visible food items as bullet points with estimated quantity." if language == "English" else "רשום את כל פריטי המזון הגלויים כנקודות עם כמות משוערת."
 
@@ -112,31 +100,39 @@ else:
             st.session_state['analysis_results'] = all_results
 
     if 'analysis_results' in st.session_state and st.button("Save All Items"):
-        now = datetime.now().isoformat()
         total_saved = 0
         for loc, text in st.session_state['analysis_results']:
             items = re.findall(r'[-•*]\s*(.+?)(?=\n|$)', text)
             for item in items:
                 if item.strip():
-                    cursor.execute("INSERT INTO inventory (name, quantity, location, added) VALUES (?, ?, ?, ?)", 
-                                   (item.strip()[:200], "as detected", loc, now))
+                    supabase.table("inventory").insert({
+                        "name": item.strip()[:200],
+                        "quantity": "as detected",
+                        "location": loc
+                    }).execute()
                     total_saved += 1
-        conn.commit()
-        st.success(f"Saved {total_saved} items!")
+        st.success(f"Saved {total_saved} items to the cloud!")
         if 'analysis_results' in st.session_state:
             del st.session_state['analysis_results']
 
+    # Show current inventory from Supabase
     st.subheader("Current Inventory")
-    cursor.execute("SELECT id, name, location FROM inventory ORDER BY added DESC")
-    for row in cursor.fetchall():
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            st.write(f"• {row[1]} — {row[2]}")
-        with col2:
-            if st.button("Delete", key=f"del{row[0]}"):
-                cursor.execute("DELETE FROM inventory WHERE id=?", (row[0],))
-                conn.commit()
-                st.rerun()
+    try:
+        response = supabase.table("inventory").select("*").order("added", desc=True).execute()
+        rows = response.data
+        if rows:
+            for row in rows:
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    st.write(f"• {row['name']} — {row['location']}")
+                with col2:
+                    if st.button("Delete", key=f"del{row['id']}"):
+                        supabase.table("inventory").delete().eq("id", row['id']).execute()
+                        st.rerun()
+        else:
+            st.info("No items yet.")
+    except Exception as e:
+        st.error(f"Could not load inventory: {e}")
 
     if st.button("Reset Setup"):
         st.session_state.setup_done = False
