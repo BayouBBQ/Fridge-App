@@ -12,17 +12,21 @@ try:
 except:
     existing_users = []
 
-selected_user = st.selectbox("Select user", [""] + existing_users)
+# Select existing user → go to Scan
+selected_user = st.selectbox("Select existing user", [""] + existing_users)
 if selected_user and selected_user != st.session_state.get("user_name"):
     st.session_state.user_name = selected_user
-    st.rerun()
+    st.session_state.setup_done = True  # assume existing user has setup
+    st.switch_page("pages/3_Scan.py")
 
+# Add new user → go to Setup
 new_user = st.text_input("Or add new user")
 if st.button("Add and use new user") and new_user.strip():
     st.session_state.user_name = new_user.strip()
     st.session_state.setup_done = False
-    st.rerun()
+    st.switch_page("pages/2_Setup.py")
 
+# Delete user
 if existing_users:
     user_to_delete = st.selectbox("Delete a user", [""] + existing_users)
     if st.button("Delete selected user") and user_to_delete:
@@ -32,23 +36,9 @@ if existing_users:
             st.session_state.user_name = ""
         st.rerun()
 
-# Auto-redirect
 if st.session_state.get("user_name"):
     st.success(f"Current user: **{st.session_state.user_name}**")
-    
-    try:
-        check = supabase.table("inventory").select("id").eq("user_name", st.session_state.user_name).limit(1).execute()
-        has_data = len(check.data) > 0
-    except:
-        has_data = False
-    
-    if not st.session_state.get("setup_done") and not has_data:
-        st.info("New user — going to Setup...")
-        st.switch_page("pages/2_Setup.py")
-    elif has_data or st.session_state.get("setup_done"):
-        st.info("Existing user — going to Scan...")
-        st.switch_page("pages/3_Scan.py")
 else:
-    st.info("Select or add a user to continue. Use the sidebar menu to navigate.")
+    st.info("Select an existing user or add a new one.")
        
       
