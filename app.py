@@ -1,5 +1,6 @@
 import streamlit as st
 from supabase import create_client
+import json
 
 supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
@@ -15,13 +16,19 @@ except:
 selected_user = st.selectbox("Select existing user", [""] + existing_users)
 if selected_user and selected_user != st.session_state.get("user_name"):
     st.session_state.user_name = selected_user
-    # If no layout is loaded, send to Setup; otherwise go to Scan
-    if not st.session_state.get("locations"):
+    # Try to load saved layout
+    try:
+        settings = supabase.table("user_settings").select("locations").eq("user_name", selected_user).execute()
+        if settings.data:
+            st.session_state.locations = json.loads(settings.data[0]["locations"])
+            st.session_state.setup_done = True
+            st.switch_page("pages/3_Scan.py")
+        else:
+            st.session_state.setup_done = False
+            st.switch_page("pages/2_Setup.py")
+    except:
         st.session_state.setup_done = False
         st.switch_page("pages/2_Setup.py")
-    else:
-        st.session_state.setup_done = True
-        st.switch_page("pages/3_Scan.py")
 
 new_user = st.text_input("Or add new user")
 if st.button("Add and use new user") and new_user.strip():
@@ -33,6 +40,7 @@ if existing_users:
     user_to_delete = st.selectbox("Delete a user", [""] + existing_users)
     if st.button("Delete selected user") and user_to_delete:
         supabase.table("inventory").delete().eq("user_name", user_to_delete).execute()
+        supabase.table("user_settings").delete().eq("user_name", user_to_delete).execute()
         st.success(f"Deleted {user_to_delete}")
         if st.session_state.get("user_name") == user_to_delete:
             st.session_state.user_name = ""
