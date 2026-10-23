@@ -1,4 +1,8 @@
 import streamlit as st
+from supabase import create_client
+import json
+
+supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.title("Setup")
 
@@ -8,7 +12,7 @@ if "user_name" not in st.session_state or not st.session_state.user_name:
 
 st.write(f"Setting up for **{st.session_state.user_name}**")
 
-if 'setup_done' not in st.session_state:
+if "setup_done" not in st.session_state:
     st.session_state.setup_done = False
 
 if st.session_state.setup_done:
@@ -40,6 +44,14 @@ pantry_text = st.text_area("Pantry locations (one per line)", "Pantry Shelf 1\nP
 if st.button("Save Full Setup"):
     fridge_freezer = st.session_state.get("fridge_freezer", [])
     pantry = [line.strip() for line in pantry_text.split("\n") if line.strip()]
-    st.session_state.locations = fridge_freezer + pantry
+    locations = fridge_freezer + pantry
+    st.session_state.locations = locations
     st.session_state.setup_done = True
+    
+    # Save to Supabase
+    supabase.table("user_settings").upsert({
+        "user_name": st.session_state.user_name,
+        "locations": json.dumps(locations)
+    }, on_conflict="user_name").execute()
+    
     st.switch_page("pages/3_Scan.py")
