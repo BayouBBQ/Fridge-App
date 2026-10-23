@@ -12,6 +12,24 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.title("Fridge Scanner")
 
+# Simple name system
+if "user_name" not in st.session_state:
+    st.session_state.user_name = ""
+
+if not st.session_state.user_name:
+    st.subheader("Who are you?")
+    name = st.text_input("Enter your name")
+    if st.button("Continue") and name.strip():
+        st.session_state.user_name = name.strip()
+        st.rerun()
+    st.stop()
+
+st.write(f"Hello, **{st.session_state.user_name}**")
+if st.button("Switch user"):
+    st.session_state.user_name = ""
+    st.session_state.setup_done = False
+    st.rerun()
+
 # Setup Wizard
 if 'setup_done' not in st.session_state:
     st.session_state.setup_done = False
@@ -110,20 +128,20 @@ else:
                     supabase.table("inventory").insert({
                         "name": item.strip()[:200],
                         "quantity": "as detected",
-                        "location": loc
+                        "location": loc,
+                        "user_name": st.session_state.user_name
                     }).execute()
                     total_saved += 1
         st.success(f"Saved {total_saved} items to the cloud!")
         if 'analysis_results' in st.session_state:
             del st.session_state['analysis_results']
 
-    # Current Inventory + Download
+    # Current Inventory (filtered by user)
     st.subheader("Current Inventory")
     try:
-        response = supabase.table("inventory").select("*").order("added", desc=True).execute()
+        response = supabase.table("inventory").select("*").eq("user_name", st.session_state.user_name).order("added", desc=True).execute()
         rows = response.data
         if rows:
-            # Download button
             output = io.StringIO()
             writer = csv.writer(output)
             writer.writerow(["Item", "Quantity", "Location", "Added"])
@@ -134,7 +152,7 @@ else:
             st.download_button(
                 label="Download Inventory (CSV)",
                 data=csv_data,
-                file_name=f"inventory_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                file_name=f"inventory_{st.session_state.user_name}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                 mime="text/csv"
             )
             
@@ -147,7 +165,7 @@ else:
                         supabase.table("inventory").delete().eq("id", row['id']).execute()
                         st.rerun()
         else:
-            st.info("No items yet.")
+            st.info("No items yet for this user.")
     except Exception as e:
         st.error(f"Could not load inventory: {e}")
         rows = []
@@ -159,7 +177,7 @@ else:
         previous_items = set()
         content = previous_file.getvalue().decode("utf-8")
         reader = csv.reader(io.StringIO(content))
-        next(reader, None)  # skip header
+        next(reader, None)
         for row in reader:
             if row and row[0].strip():
                 previous_items.add(row[0].strip().lower())
