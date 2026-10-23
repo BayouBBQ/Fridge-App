@@ -4,6 +4,8 @@ from supabase import create_client
 import base64
 from datetime import datetime
 import re
+import csv
+import io
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
@@ -115,12 +117,27 @@ else:
         if 'analysis_results' in st.session_state:
             del st.session_state['analysis_results']
 
-    # Show current inventory from Supabase
+    # Current Inventory + Download
     st.subheader("Current Inventory")
     try:
         response = supabase.table("inventory").select("*").order("added", desc=True).execute()
         rows = response.data
         if rows:
+            # Download button
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["Item", "Quantity", "Location", "Added"])
+            for row in rows:
+                writer.writerow([row.get("name",""), row.get("quantity",""), row.get("location",""), row.get("added","")])
+            csv_data = output.getvalue()
+            
+            st.download_button(
+                label="Download Inventory (CSV)",
+                data=csv_data,
+                file_name=f"inventory_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                mime="text/csv"
+            )
+            
             for row in rows:
                 col1, col2 = st.columns([4, 1])
                 with col1:
@@ -133,6 +150,29 @@ else:
             st.info("No items yet.")
     except Exception as e:
         st.error(f"Could not load inventory: {e}")
+        rows = []
+
+    # Compare with previous inventory
+    st.subheader("Compare with Previous Scan (Shopping List)")
+    previous_file = st.file_uploader("Upload previous inventory CSV", type=["csv"])
+    if previous_file and rows:
+        previous_items = set()
+        content = previous_file.getvalue().decode("utf-8")
+        reader = csv.reader(io.StringIO(content))
+        next(reader, None)  # skip header
+        for row in reader:
+            if row and row[0].strip():
+                previous_items.add(row[0].strip().lower())
+        
+        current_items = {row['name'].strip().lower() for row in rows}
+        missing = previous_items - current_items
+        
+        if missing:
+            st.write("**Possible shopping list (missing from current scan):**")
+            for item in sorted(missing):
+                st.write(f"• {item}")
+        else:
+            st.success("No missing items detected compared to the previous scan.")
 
     if st.button("Reset Setup"):
         st.session_state.setup_done = False
