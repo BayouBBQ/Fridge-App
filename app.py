@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime
 import re
 
-client = OpenAI()
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 conn = sqlite3.connect('inventory.db', check_same_thread=False)
 cursor = conn.cursor()
