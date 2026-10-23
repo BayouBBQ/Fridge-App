@@ -4,26 +4,6 @@ from supabase import create_client
 supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.title("Fridge Scanner")
-
-# Navigation buttons (manual override)
-st.subheader("Menu")
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    if st.button("Setup"):
-        st.switch_page("pages/2_Setup.py")
-with col2:
-    if st.button("Scan"):
-        st.switch_page("pages/3_Scan.py")
-with col3:
-    if st.button("Inventory"):
-        st.switch_page("pages/4_Inventory.py")
-with col4:
-    if st.button("Shopping List"):
-        st.switch_page("pages/5_Shopping_List.py")
-
-st.divider()
-
-# Users
 st.subheader("Users")
 
 try:
@@ -52,11 +32,10 @@ if existing_users:
             st.session_state.user_name = ""
         st.rerun()
 
-# Auto-redirect logic
+# Auto-redirect
 if st.session_state.get("user_name"):
     st.success(f"Current user: **{st.session_state.user_name}**")
     
-    # Check if this user has any inventory (means they've used the app before)
     try:
         check = supabase.table("inventory").select("id").eq("user_name", st.session_state.user_name).limit(1).execute()
         has_data = len(check.data) > 0
@@ -70,6 +49,6 @@ if st.session_state.get("user_name"):
         st.info("Existing user — going to Scan...")
         st.switch_page("pages/3_Scan.py")
 else:
-    st.info("Select or add a user to continue.")
+    st.info("Select or add a user to continue. Use the sidebar menu to navigate.")
        
       
