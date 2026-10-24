@@ -68,4 +68,3 @@ if 'analysis_results' in st.session_state and st.button("Save All Items"):
         del st.session_state['analysis_results']
     st.switch_page("pages/4_Inventory.py")
 
-
