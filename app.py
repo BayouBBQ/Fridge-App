@@ -19,14 +19,15 @@ if selected_user and selected_user != st.session_state.get("user_name"):
     # Try to load saved layout
     try:
         settings = supabase.table("user_settings").select("locations").eq("user_name", selected_user).execute()
-        if settings.data:
+        if settings.data and settings.data[0].get("locations"):
             st.session_state.locations = json.loads(settings.data[0]["locations"])
             st.session_state.setup_done = True
             st.switch_page("pages/3_Scan.py")
         else:
             st.session_state.setup_done = False
             st.switch_page("pages/2_Setup.py")
-    except:
+    except Exception as e:
+        st.error(f"Could not load settings: {e}")
         st.session_state.setup_done = False
         st.switch_page("pages/2_Setup.py")
 
