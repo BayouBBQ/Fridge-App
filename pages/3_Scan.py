@@ -19,11 +19,14 @@ if not st.session_state.get("setup_done"):
 
 st.write(f"Scanning for **{st.session_state.user_name}**")
 
+# Use language from Home page
 language = st.session_state.get("language", "English")
+st.write(f"Language: {language}")  # temporary debug line — you can remove later
+
 prompt = "List all visible food items as bullet points with estimated quantity." if language == "English" else "רשום את כל פריטי המזון הגלויים כנקודות עם כמות משוערת."
 
 photo_uploads = {}
-for i, loc in enumerate(st.session_state.locations):
+for i, loc in enumerate(st.session_state.get("locations", [])):
     uploaded = st.file_uploader(f"Photo for {loc}", type=["jpg", "png", "jpeg"], key=f"photo_{i}")
     if uploaded:
         photo_uploads[loc] = uploaded
