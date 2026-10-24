@@ -1,7 +1,6 @@
 import streamlit as st
 from supabase import create_client
-import csv
-import io
+from collections import defaultdict
 
 supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
@@ -13,7 +12,7 @@ if "user_name" not in st.session_state or not st.session_state.user_name:
 
 st.write(f"Shopping list for **{st.session_state.user_name}**")
 
-# Manual add
+# Manual add (still available)
 if "manual_shopping" not in st.session_state:
     st.session_state.manual_shopping = []
 
@@ -35,29 +34,36 @@ if st.session_state.manual_shopping:
 
 st.divider()
 
-# CSV comparison
-st.subheader("Compare with previous scan")
-try:
-    response = supabase.table("inventory").select("*").eq("user_name", st.session_state.user_name).execute()
-    current_rows = response.data
-    current_items = {row['name'].strip().lower() for row in current_rows} if current_rows else set()
-except:
-    current_items = set()
+# Automatic comparison of the two most recent scans
+st.subheader("Automatic comparison (latest vs previous scan)")
 
-previous_file = st.file_uploader("Upload previous inventory CSV", type=["csv"])
-if previous_file:
-    previous_items = set()
-    content = previous_file.getvalue().decode("utf-8")
-    reader = csv.reader(io.StringIO(content))
-    next(reader, None)
-    for row in reader:
-        if row and row[0].strip():
-            previous_items.add(row[0].strip().lower())
+try:
+    response = supabase.table("inventory").select("name, added").eq("user_name", st.session_state.user_name).order("added", desc=True).execute()
+    rows = response.data
     
-    missing = previous_items - current_items
-    if missing:
-        st.write("**Items that may need restocking:**")
-        for item in sorted(missing):
-            st.write(f"• {item}")
+    if not rows:
+        st.info("No scans yet.")
     else:
-        st.success("No missing items detected from the previous scan.")
+        # Group items by scan time
+        scans = defaultdict(set)
+        for row in rows:
+            scans[row["added"]].add(row["name"].strip().lower())
+        
+        scan_times = sorted(scans.keys(), reverse=True)
+        
+        if len(scan_times) < 2:
+            st.info("Need at least two scans to compare automatically.")
+        else:
+            latest = scans[scan_times[0]]
+            previous = scans[scan_times[1]]
+            missing = previous - latest
+            
+            st.write(f"Comparing scan from {scan_times[1][:16]} to {scan_times[0][:16]}")
+            if missing:
+                st.write("**Items that may need restocking:**")
+                for item in sorted(missing):
+                    st.write(f"• {item}")
+            else:
+                st.success("No missing items between the last two scans.")
+except Exception as e:
+    st.error(f"Error loading scans: {e}")
