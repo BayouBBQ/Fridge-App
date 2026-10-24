@@ -10,12 +10,17 @@ st.title("Fridge Scanner")
 if "language" not in st.session_state:
     st.session_state.language = "English"
 
-st.session_state.language = st.radio(
+language_choice = st.radio(
     "Language / שפה",
     ["English", "עברית"],
     index=0 if st.session_state.language == "English" else 1,
-    horizontal=True
+    horizontal=True,
+    key="language_radio"
 )
+
+if language_choice != st.session_state.language:
+    st.session_state.language = language_choice
+    st.rerun()
 
 st.subheader("Users")
 
@@ -62,4 +67,3 @@ if st.session_state.get("user_name"):
     st.success(f"Current user: **{st.session_state.user_name}**")
 else:
     st.info("Select an existing user or add a new one.")
-      
