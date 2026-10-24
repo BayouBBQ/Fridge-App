@@ -6,14 +6,21 @@ supabase = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 st.title("Fridge Scanner")
 
-# Language selector
-st.radio(
-    "Language / שפה",
-    ["English", "עברית"],
-    index=0 if st.session_state.get("language", "English") == "English" else 1,
-    horizontal=True,
-    key="language"
-)
+# Simple language selector
+if "language" not in st.session_state:
+    st.session_state.language = "English"
+
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("English"):
+        st.session_state.language = "English"
+        st.rerun()
+with col2:
+    if st.button("עברית"):
+        st.session_state.language = "עברית"
+        st.rerun()
+
+st.write(f"Current language: **{st.session_state.language}**")
 
 st.subheader("Users")
 
