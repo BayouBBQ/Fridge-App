@@ -15,6 +15,7 @@ if lang == "עברית":
     pantry_label = "מיקומי מזווה (אחד בכל שורה)"
     save_label = "שמור הגדרות"
     complete_msg = "ההגדרות הושלמו. עובר לסריקה..."
+    pantry_default = "מדף מזווה 1\nמדף מזווה 2\nמדף מזווה 3\nרצפת מזווה"
 else:
     title = "Setup"
     setting_up = "Setting up for"
@@ -24,6 +25,7 @@ else:
     pantry_label = "Pantry locations (one per line)"
     save_label = "Save Full Setup"
     complete_msg = "Setup already complete. Going to Scan..."
+    pantry_default = "Pantry Shelf 1\nPantry Shelf 2\nPantry Shelf 3\nPantry Floor"
 
 st.title(title)
 
@@ -47,20 +49,30 @@ if st.button(generate_label):
     make_clean = make.strip().lower()
     model_clean = model.strip().lower().replace(" ", "").replace("-", "")
     if "lg" in make_clean and "grb708xl" in model_clean:
-        st.session_state.fridge_freezer = [
-            "Fridge Top Shelf", "Fridge Middle Shelf", "Fridge Bottom Shelf",
-            "Fridge Vegetable Drawer Left", "Fridge Vegetable Drawer Right",
-            "Fridge Door Left Top", "Fridge Door Left Middle", "Fridge Door Left Bottom",
-            "Fridge Door Right Top", "Fridge Door Right Middle", "Fridge Door Right Bottom",
-            "Freezer Left Top", "Freezer Left Bottom", "Freezer Right Top", "Freezer Right Bottom",
-            "Freezer Door Left", "Freezer Door Right"
-        ]
+        if lang == "עברית":
+            st.session_state.fridge_freezer = [
+                "מדף עליון במקרר", "מדף אמצעי במקרר", "מדף תחתון במקרר",
+                "מגירת ירקות שמאל", "מגירת ירקות ימין",
+                "דלת מקרר שמאל עליון", "דלת מקרר שמאל אמצע", "דלת מקרר שמאל תחתון",
+                "דלת מקרר ימין עליון", "דלת מקרר ימין אמצע", "דלת מקרר ימין תחתון",
+                "מקפיא שמאל עליון", "מקפיא שמאל תחתון", "מקפיא ימין עליון", "מקפיא ימין תחתון",
+                "דלת מקפיא שמאל", "דלת מקפיא ימין"
+            ]
+        else:
+            st.session_state.fridge_freezer = [
+                "Fridge Top Shelf", "Fridge Middle Shelf", "Fridge Bottom Shelf",
+                "Fridge Vegetable Drawer Left", "Fridge Vegetable Drawer Right",
+                "Fridge Door Left Top", "Fridge Door Left Middle", "Fridge Door Left Bottom",
+                "Fridge Door Right Top", "Fridge Door Right Middle", "Fridge Door Right Bottom",
+                "Freezer Left Top", "Freezer Left Bottom", "Freezer Right Top", "Freezer Right Bottom",
+                "Freezer Door Left", "Freezer Door Right"
+            ]
         st.success("LG GR-B708XL layout loaded!" if lang == "English" else "פריסת LG GR-B708XL נטענה!")
     else:
         st.session_state.fridge_freezer = ["Fridge Top Shelf", "Fridge Middle Shelf", "Fridge Bottom Shelf", "Fridge Door", "Freezer"]
         st.info("Generic layout loaded." if lang == "English" else "פריסה כללית נטענה.")
 
-pantry_text = st.text_area(pantry_label, "Pantry Shelf 1\nPantry Shelf 2\nPantry Shelf 3\nPantry Floor", height=150)
+pantry_text = st.text_area(pantry_label, pantry_default, height=150)
 
 if st.button(save_label):
     fridge_freezer = st.session_state.get("fridge_freezer", [])
