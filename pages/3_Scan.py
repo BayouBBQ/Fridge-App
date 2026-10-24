@@ -19,7 +19,7 @@ if not st.session_state.get("setup_done"):
 
 st.write(f"Scanning for **{st.session_state.user_name}**")
 
-language = st.radio("Language", ["English", "עברית"], horizontal=True)
+language = st.session_state.get("language", "English")
 prompt = "List all visible food items as bullet points with estimated quantity." if language == "English" else "רשום את כל פריטי המזון הגלויים כנקודות עם כמות משוערת."
 
 photo_uploads = {}
